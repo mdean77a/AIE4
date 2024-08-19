@@ -35,6 +35,9 @@ class TextFileLoader:
         self.load()
         return self.documents
 
+# I wrote this class to load PDF documents using PyPDF2 (added to the imports above).
+# Also added PyPDF2 to the requirements.txt file for future portability.
+
 class PDFLoader:
     def __init__(self, path: str):
         self.documents = []

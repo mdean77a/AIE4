@@ -12,8 +12,13 @@ from IPython.display import Markdown, display
 import chainlit as cl
 from openai import OpenAI, AsyncOpenAI
 import openai
+from dotenv import load_dotenv
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+load_dotenv()
+
+api_key = "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"
+print(f"API Key: {api_key}")
+
 # Path to my directory containing PDF files
 directory = "References/"
 
@@ -33,7 +38,7 @@ for filename in os.listdir(directory):
 # the lengths were always less than 1000 tokens, so INITIAL STRATEGY is to use
 # each document as a single chunk and not further split.
 
-embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
+embedding_model = OpenAIEmbeddings(model="text-embedding-3-small", api_key=api_key )
 
 page_split_vectorstore = Qdrant.from_documents(
     all_docs,
@@ -74,7 +79,7 @@ chunk_split_vectorstore = Qdrant.from_documents(
 
 chunk_split_retriever = chunk_split_vectorstore.as_retriever()
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o", api_key=api_key)
 
 rag_prompt_template = """\
 You are a helpful and polite and cheerful assistant who answers questions based solely on the provided context. 

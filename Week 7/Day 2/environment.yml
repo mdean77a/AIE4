@@ -1,0 +1,6 @@
+name: clean
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+prefix: /Users/jmichaeldean/anaconda3/envs/clean

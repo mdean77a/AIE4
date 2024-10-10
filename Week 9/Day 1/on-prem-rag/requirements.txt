@@ -1,0 +1,7 @@
+fastapi
+langserve
+langchain
+langchain-community
+langchain_ollama
+langchain_core
+langchain_qdrant

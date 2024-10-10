@@ -4,17 +4,20 @@ from langserve import add_routes
 from langchain_core.prompts import PromptTemplate
 from langchain_ollama import OllamaEmbeddings
 from langchain_ollama import OllamaLLM
-from langchain_qdrant import QdrantVectorStore
+from langchain_qdrant import QdrantVectorStore, Qdrant
 from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance, VectorParams
 from operator import itemgetter
 from langchain.schema.output_parser import StrOutputParser
 from pydantic import BaseModel, Field
 from langchain.schema.runnable import RunnablePassthrough
 from typing import Any, List, Union
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_community.vectorstores import Qdrant
+# from langchain_community.vectorstores import Qdrant
 from langchain_core.documents.base import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.retrievers import ParentDocumentRetriever
+from langchain.storage import InMemoryStore
 
 llm_model = OllamaLLM(model="llama3.1:8b-instruct-q8_0")
 # print(llm_model.invoke("Come up with ten names for a song about Parrots"))
@@ -56,6 +59,37 @@ embedding_model = OllamaEmbeddings(
     model="mxbai-embed-large",
 )                         
 
+# ### Parent Child Experiment
+# # Make parent documents 2000 tokens and child split to 250 tokens
+# parent_splitter = RecursiveCharacterTextSplitter(
+#     chunk_size=2000,
+# )
+# child_splitter = RecursiveCharacterTextSplitter(
+#     chunk_size = 250,
+# )
+
+# client = QdrantClient(url="http://localhost:6333")
+# client.create_collection(
+#     collection_name="parent_protocol",
+#     vectors_config=VectorParams(size=1024, distance=Distance.COSINE)
+# )
+
+# parent_vectorstore = QdrantVectorStore(
+#     client=client,
+#     collection_name="parent_protocol",
+#     embedding=embedding_model,
+# )
+# store = InMemoryStore()
+
+# parent_retriever = ParentDocumentRetriever(
+#     vectorstore=parent_vectorstore,
+#     docstore=store,
+#     child_splitter=child_splitter,
+#     parent_splitter=parent_splitter,
+# )
+# parent_retriever.add_documents(document)
+
+
 client = QdrantClient(url="http://localhost:6333")
 if client.collection_exists("protocol_collection"):
     print("Collection exists")
@@ -81,11 +115,12 @@ You are a helpful assistant. You answer user questions based on provided context
 If you can't answer the question with the provided context, say you don't know.<|eot_id|>
 
 <|start_header_id|>user<|end_header_id|>
-User Query:
-{query}
 
 Context:
-{context}<|eot_id|>
+{context}
+
+User Query:
+{query}<|eot_id|>
 
 <|start_header_id|>assistant<|end_header_id|>
 """
@@ -94,6 +129,8 @@ rag_prompt = PromptTemplate.from_template(RAG_PROMPT_TEMPLATE)
 
 rag_chain = ({"context": itemgetter("query") | retriever, "query": itemgetter("query")} 
              | rag_prompt | llm_model)
+# parent_rag_chain = ({"context": itemgetter("query") | parent_retriever, "query": itemgetter("query")} 
+#              | rag_prompt | llm_model)
 
 class Input(BaseModel):
     query: str
@@ -115,6 +152,13 @@ add_routes(
         {"run_name": "ProtocolRAG"}
     )
 )
+
+# add_routes(
+#     app,
+#     parent_rag_chain.with_types(input_type=Input, output_type=Output).with_config(
+#         {"run_name": "ProtocolRAG"}
+#     )
+# )
 
 if __name__ == "__main__":
     import uvicorn
